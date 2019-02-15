@@ -63,6 +63,7 @@ func (c *Client) Start() {
 func (c *Client) Stop() {
 	if c.state == running {
 		c.state = stopping
+		close(c.tChan)
 	}
 	<-c.done
 }
