@@ -1,6 +1,9 @@
 package tw
 
-import "sync"
+import (
+	"container/list"
+	"sync"
+)
 
 const (
 	// states of a timeout
@@ -20,9 +23,15 @@ func (i OnTimeoutImpl) Callback(payload interface{}) {
 	payload.(func())()
 }
 
+func newTimeouts() *timeouts {
+	return &timeouts{
+		list: list.New(),
+	}
+}
+
 type timeouts struct {
 	sync.Mutex
-	list []*timeout
+	list *list.List
 }
 
 type timeout struct {
@@ -31,14 +40,8 @@ type timeout struct {
 	deadline uint64
 }
 
-func (ts *timeouts) prepend(t *timeout) {
+func (ts *timeouts) push(t *timeout) {
 	ts.Lock()
-	ts.list = append(ts.list, t)
-	ts.Unlock()
-}
-
-func (ts *timeouts) pop() {
-	ts.Lock()
-	ts.list = ts.list[:len(ts.list)-1]
+	ts.list.PushBack(t)
 	ts.Unlock()
 }
