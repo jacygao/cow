@@ -15,12 +15,15 @@ func TestSchedule(t *testing.T) {
 	cli.Schedule(time.Second, func(){
 		fmt.Println("test2")
 	})
-	cli.Schedule(2 * time.Second, func(){
+	cli.Schedule(time.Second, func(){
 		fmt.Println("test3")
 	})
-	cli.Schedule(4 * time.Second, func(){
+	cli.Schedule(2 * time.Second, func(){
 		fmt.Println("test4")
 	})
-	time.Sleep(10 * time.Second)
+	cli.Schedule(4 * time.Second, func(){
+		fmt.Println("test5")
+	})
+	time.Sleep(15 * time.Second)
 	cli.Stop()
 }

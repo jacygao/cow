@@ -5,13 +5,6 @@ import (
 	"sync"
 )
 
-const (
-	// states of a timeout
-	timeoutInactive = iota
-	timeoutExpired
-	timeoutActive
-)
-
 type OnTimeout interface {
 	Callback(userData interface{})
 }
@@ -54,8 +47,10 @@ func (ts *timeouts) pop(t *list.Element) {
 
 func (ts *timeouts) set(l *list.List) {
 	ts.Lock()
-	if l.Len() > 0 {
-		ts.list = l
+	if l != nil {
+		if l.Len() > 0 {
+			ts.list = l
+		}
 	}
 	ts.Unlock()
 }

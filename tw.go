@@ -124,6 +124,7 @@ func (c *Client) onTick() {
 		select {
 		case c.tChan <- ts:
 			ts.unset()
+			c.buckets[c.ticks&c.bMask] = nil
 		default:
 		}
 	}
@@ -137,9 +138,6 @@ func (c *Client) onExpire() {
 			for t := ts.list.Front(); t != nil; t = t.Next() {
 				if timeout, ok := t.Value.(*timeout); ok {
 					timeout.callback.Callback(timeout.userData)
-					c.Lock()
-					c.buckets[timeout.deadline&c.bMask].pop(t)
-					c.Unlock()
 				}
 			}
 			ts.Unlock()
