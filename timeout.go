@@ -45,3 +45,23 @@ func (ts *timeouts) push(t *timeout) {
 	ts.list.PushBack(t)
 	ts.Unlock()
 }
+
+func (ts *timeouts) pop(t *list.Element) {
+	ts.Lock()
+	ts.list.Remove(t)
+	ts.Unlock()
+}
+
+func (ts *timeouts) set(l *list.List) {
+	ts.Lock()
+	if l.Len() > 0 {
+		ts.list = l
+	}
+	ts.Unlock()
+}
+
+func (ts *timeouts) unset() {
+	ts.Lock()
+	ts.list = nil
+	ts.Unlock()
+}

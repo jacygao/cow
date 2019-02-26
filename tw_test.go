@@ -21,6 +21,6 @@ func TestSchedule(t *testing.T) {
 	cli.Schedule(4 * time.Second, func(){
 		fmt.Println("test4")
 	})
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 	cli.Stop()
 }
