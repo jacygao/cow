@@ -1,6 +1,7 @@
 package tw
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -81,6 +82,11 @@ func (c *Client) Stop() {
 	if c.state == running {
 		c.state = stopping
 		close(c.tChan)
+		for _, b := range c.buckets {
+			if b != nil {
+				b.Unlock()
+			}
+		}
 	}
 	c.Unlock()
 	<-c.done
@@ -114,6 +120,7 @@ func (c *Client) onTick() {
 		}
 		bucket := c.buckets[c.ticks&c.bMask]
 		if bucket != nil {
+			fmt.Printf("To be called at %d : %+v \n", c.ticks, bucket.list)
 			ts.set(bucket.list)
 		}
 		c.Unlock()
@@ -124,13 +131,16 @@ func (c *Client) onTick() {
 		select {
 		case c.tChan <- ts:
 			ts.unset()
+			c.Lock()
 			c.buckets[c.ticks&c.bMask] = nil
+			c.Unlock()
 		default:
 		}
 	}
 	ticker.Stop()
 }
 
+// onExpire fires timeout callbacks
 func (c *Client) onExpire() {
 	for ts := range c.tChan {
 		if ts.list != nil {

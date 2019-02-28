@@ -57,6 +57,6 @@ func (ts *timeouts) set(l *list.List) {
 
 func (ts *timeouts) unset() {
 	ts.Lock()
-	ts.list = nil
+	ts.list = list.New()
 	ts.Unlock()
 }
