@@ -1,2 +1,2 @@
 # tw
-(in progress) Attempting to implement a dedicated timer Wheel that centrally manages application timeout callbacks
+Attempting to implement a dedicated timer Wheel that centrally manages application timeout callbacks
