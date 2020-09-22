@@ -1,6 +1,7 @@
 package tw
 
 import (
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -34,6 +35,7 @@ type Client struct {
 	tickInterval time.Duration
 	state        int
 	buckets      []timeoutList
+	freeBucket   []timeoutList
 	bMask        uint64
 	tChan        chan timeoutList
 	done         chan struct{}
@@ -49,6 +51,7 @@ func New(options ...Option) *Client {
 		tickInterval: conf.tickInterval,
 		state:        stopped,
 		buckets:      make([]timeoutList, defaultBucketSize),
+		freeBucket:   make([]timeoutList, defaultBucketSize),
 		bMask:        defaultBucketSize - 1,
 	}
 }
@@ -99,14 +102,14 @@ func (c *Client) Schedule(d time.Duration, data []byte, cb func([]byte)) {
 	}
 	c.Lock()
 	defer c.Unlock()
-
+	log.Printf("insert %v", deadline&c.bMask)
 	b := c.buckets[deadline&c.bMask]
 	// if the last tick has already passed the deadline, execute callback now
 	if b.lastTick >= deadline {
 		t.receiver.Callback(data)
 	}
 	// otherwise schedule timeout
-	b.prepend(t)
+	c.buckets[deadline&c.bMask].prepend(t)
 }
 
 func (c *Client) onTick() {
@@ -114,32 +117,31 @@ func (c *Client) onTick() {
 	ticker := time.NewTicker(c.tickInterval)
 	for range ticker.C {
 		atomic.AddUint64(&c.ticks, 1)
+		log.Printf("tick: %v", c.ticks)
 		c.Lock()
 		if c.state != running {
 			c.Unlock()
 			break
 		}
+
 		bucket := c.buckets[c.ticks&c.bMask]
 		bucket.lastTick = c.ticks
 		t := bucket.head
 		for t != nil {
 			if t.deadline <= c.ticks {
-				tl.prepend(t)
 				t.remove()
+				tl.prepend(t)
 			}
+			t = t.next
 		}
 		c.Unlock()
 		if tl.head == nil {
 			continue
 		}
-
-		select {
-		case c.tChan <- tl:
-			c.Lock()
-			tl.head = nil
-			c.Unlock()
-		default:
-		}
+		c.tChan <- tl
+		c.Lock()
+		tl.head = nil
+		c.Unlock()
 	}
 	ticker.Stop()
 }
@@ -149,10 +151,11 @@ func (c *Client) onExpire() {
 	for list := range c.tChan {
 		t := list.head
 		for t != nil {
-			t.mtx.Lock()
+			c.Lock()
 			if t.receiver != nil {
 				t.receiver.Callback(t.userData)
 			}
+			t = t.next
 			c.Unlock()
 		}
 	}

@@ -33,11 +33,16 @@ type timeout struct {
 	userData []byte
 	deadline uint64
 	next     *timeout
+	prev     *timeout
 }
 
 func (t *timeout) remove() {
-	t.userData = t.next.userData
-	t.next = t.next.next
+	if t.prev != nil {
+		t.prev.next = t.next
+	}
+	if t.next != nil {
+		t.next.prev = t.prev
+	}
 }
 
 type timeoutList struct {
@@ -46,6 +51,12 @@ type timeoutList struct {
 }
 
 func (tl *timeoutList) prepend(t *timeout) {
-	t.next = tl.head
-	tl.head = t
+	if tl.head == nil {
+		tl.head = t
+	} else {
+		tl.head.prev = t
+		t.next = tl.head
+		t.prev = nil
+		tl.head = t
+	}
 }

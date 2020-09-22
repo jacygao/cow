@@ -9,10 +9,16 @@ import (
 func TestSchedule(t *testing.T) {
 	cli := New()
 	cli.Start()
-	cli.Schedule(2*time.Second, []byte("123"), func([]byte) {
-		fmt.Println("test1")
+	cli.Schedule(1*time.Second, []byte("123"), func([]byte) {
+		fmt.Println("test")
 	})
-	time.Sleep(5 * time.Second)
+	cli.Schedule(1*time.Second, []byte("123"), func([]byte) {
+		fmt.Println("test2")
+	})
+	cli.Schedule(2*time.Second, []byte("123"), func([]byte) {
+		fmt.Println("test3")
+	})
+	time.Sleep(3 * time.Second)
 	cli.Stop()
 	t.Fatal("")
 }
