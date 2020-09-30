@@ -54,8 +54,9 @@ func (tl *timeoutList) prepend(t *timeout) {
 	if tl.head == nil {
 		tl.head = t
 	} else {
-		tl.head.prev = t
-		t.next = tl.head
+		head := tl.head
+		head.prev = t
+		t.next = head
 		t.prev = nil
 		tl.head = t
 	}

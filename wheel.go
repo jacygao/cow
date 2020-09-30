@@ -102,7 +102,6 @@ func (c *Client) Schedule(d time.Duration, data []byte, cb func([]byte)) {
 	}
 	c.Lock()
 	defer c.Unlock()
-	log.Printf("insert %v", deadline&c.bMask)
 	b := c.buckets[deadline&c.bMask]
 	// if the last tick has already passed the deadline, execute callback now
 	if b.lastTick >= deadline {
@@ -117,7 +116,6 @@ func (c *Client) onTick() {
 	ticker := time.NewTicker(c.tickInterval)
 	for range ticker.C {
 		atomic.AddUint64(&c.ticks, 1)
-		log.Printf("tick: %v", c.ticks)
 		c.Lock()
 		if c.state != running {
 			c.Unlock()
@@ -128,8 +126,9 @@ func (c *Client) onTick() {
 		bucket.lastTick = c.ticks
 		t := bucket.head
 		for t != nil {
+			log.Printf("%+v", t)
 			if t.deadline <= c.ticks {
-				t.remove()
+				// t.remove()
 				tl.prepend(t)
 			}
 			t = t.next

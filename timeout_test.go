@@ -21,14 +21,14 @@ func TestPrepend(t *testing.T) {
 	tl.prepend(t2)
 	tl.prepend(t3)
 
-	first := tl.head
+	ti := tl.head
 	counter := 0
-	for first.next != nil {
-		first = first.next
+	for ti != nil {
+		ti = ti.next
 		counter++
 	}
-	if counter != 2 {
-		t.Fatalf("incorrect linked list length! expected %d but got %d", 2, counter)
+	if counter != 3 {
+		t.Fatalf("incorrect linked list length! expected %d but got %d", 3, counter)
 	}
 }
 
