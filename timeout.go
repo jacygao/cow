@@ -1,10 +1,5 @@
 package tw
 
-import (
-	"sync"
-	"unsafe"
-)
-
 const (
 	cacheline = 64
 )
@@ -21,14 +16,8 @@ func (ot *OnTimeoutImpl) Callback(userData []byte) {
 	ot.callback(userData)
 }
 
-// sync.Mutex padded to a cache line to avoid false sharing
-type mutex struct {
-	sync.Mutex
-	_ [cacheline - unsafe.Sizeof(sync.Mutex{})]byte
-}
-
 type timeout struct {
-	mtx      *mutex
+	mtx      *lock
 	receiver OnTimeout
 	userData []byte
 	deadline uint64

@@ -43,6 +43,7 @@ type Client struct {
 	done         chan struct{}
 }
 
+// sync.Mutex padded to a cache line to avoid false sharing
 type lock struct {
 	sync.Mutex
 	_ [cacheline - unsafe.Sizeof(sync.Mutex{})]byte
