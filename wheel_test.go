@@ -14,6 +14,12 @@ func TestSchedule(t *testing.T) {
 	cli.Schedule(1*time.Second, []byte("123"), func([]byte) {
 		result++
 	})
+	cli.Schedule(1*time.Second, []byte("123"), func([]byte) {
+		result++
+	})
+	cli.Schedule(1*time.Second, []byte("123"), func([]byte) {
+		result++
+	})
 	cli.Schedule(2*time.Second, []byte("123"), func([]byte) {
 		result++
 	})
@@ -21,7 +27,8 @@ func TestSchedule(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	cli.Stop()
 
-	if result != 2 {
-		t.Fatalf("expected 2 callback to be executed but got %d", result)
+	expectedCallbacks := 4
+	if result != expectedCallbacks {
+		t.Fatalf("expected %d callback to be executed but got %d", expectedCallbacks, result)
 	}
 }

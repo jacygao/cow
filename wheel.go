@@ -5,6 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unsafe"
 )
 
 const (
@@ -34,11 +35,17 @@ type Client struct {
 	ticks        uint64
 	tickInterval time.Duration
 	state        int
+	locker       []lock
 	buckets      []timeoutList
 	freeBucket   []timeoutList
 	bMask        uint64
 	tChan        chan timeoutList
 	done         chan struct{}
+}
+
+type lock struct {
+	sync.Mutex
+	_ [cacheline - unsafe.Sizeof(sync.Mutex{})]byte
 }
 
 func New(options ...Option) *Client {
@@ -50,6 +57,7 @@ func New(options ...Option) *Client {
 		ticks:        0,
 		tickInterval: conf.tickInterval,
 		state:        stopped,
+		locker:       make([]lock, defaultBucketSize),
 		buckets:      make([]timeoutList, defaultBucketSize),
 		freeBucket:   make([]timeoutList, defaultBucketSize),
 		bMask:        defaultBucketSize - 1,
@@ -85,34 +93,46 @@ func (c *Client) Stop() {
 	<-c.done
 }
 
-func (c *Client) Schedule(d time.Duration, data []byte, cb func([]byte)) {
+func (c *Client) leaseTimeout(deadline uint64) *timeout {
+	lock := c.locker[deadline&c.bMask]
+	lock.Lock()
+	bucket := &c.buckets[deadline&c.bMask]
+	if bucket.head == nil {
+		return &timeout{
+			deadline: deadline,
+		}
+	}
+	timeout := bucket.head
+	return timeout
+}
+
+func (c *Client) Schedule(d time.Duration, data []byte, cb func([]byte)) bool {
 	if c.state != running {
 		panic("system has stopped")
 	}
 
 	dTicks := (d + c.tickInterval - 1) / c.tickInterval
 	deadline := atomic.LoadUint64(&c.ticks) + uint64(dTicks)
-
-	t := &timeout{
-		receiver: &OnTimeoutImpl{
-			callback: cb,
-		},
-		userData: data,
-		deadline: deadline,
+	t := c.leaseTimeout(deadline)
+	t.receiver = &OnTimeoutImpl{
+		callback: cb,
 	}
+	t.userData = data
 	c.Lock()
 	defer c.Unlock()
-	b := c.buckets[deadline&c.bMask]
+	log.Printf("t: %+v", c.buckets[deadline&c.bMask])
 	// if the last tick has already passed the deadline, execute callback now
-	if b.lastTick >= deadline {
+	if c.buckets[deadline&c.bMask].lastTick >= deadline {
 		t.receiver.Callback(data)
+		return true
 	}
 	// otherwise schedule timeout
 	c.buckets[deadline&c.bMask].prepend(t)
+	return true
 }
 
 func (c *Client) onTick() {
-	var tl timeoutList
+	tl := timeoutList{}
 	ticker := time.NewTicker(c.tickInterval)
 	for range ticker.C {
 		atomic.AddUint64(&c.ticks, 1)
@@ -122,16 +142,16 @@ func (c *Client) onTick() {
 			break
 		}
 
-		bucket := c.buckets[c.ticks&c.bMask]
-		bucket.lastTick = c.ticks
-		t := bucket.head
+		c.buckets[c.ticks&c.bMask].lastTick = c.ticks
+		t := c.buckets[c.ticks&c.bMask].head
 		for t != nil {
-			log.Printf("%+v", t)
+			log.Printf("t: %p | %+v", t, t)
 			if t.deadline <= c.ticks {
 				// t.remove()
 				tl.prepend(t)
 			}
 			t = t.next
+			log.Printf("next %p | t: %+v", t, t)
 		}
 		c.Unlock()
 		if tl.head == nil {
