@@ -1,6 +1,7 @@
 package tw
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -21,14 +22,12 @@ func TestPrepend(t *testing.T) {
 	tl.prepend(t2)
 	tl.prepend(t3)
 
-	ti := tl.head
-	counter := 0
-	for ti != nil {
-		ti = ti.next
-		counter++
+	cout, ok := isLinkedListValid(tl)
+	if !ok {
+		t.Fatal("got invalid linked list")
 	}
-	if counter != 3 {
-		t.Fatalf("incorrect linked list length! expected %d but got %d", 3, counter)
+	if cout != 3 {
+		t.Fatalf("incorrect linked list length! expected %d but got %d", 3, cout)
 	}
 }
 
@@ -50,13 +49,27 @@ func TestRemove(t *testing.T) {
 	tl.prepend(t3)
 
 	t2.remove()
+	cout, ok := isLinkedListValid(tl)
+	if !ok {
+		t.Fatal("got invalid linked list")
+	}
+
+	if cout != 2 {
+		t.Fatalf("incorrect linked list length! expected %d but got %d", 1, cout)
+	}
+}
+
+func isLinkedListValid(tl *timeoutList) (int, bool) {
 	counter := 0
-	first := tl.head
-	for first.next != nil {
-		first = first.next
+	ti := tl.head
+	for ti != nil {
+		if ti.next != nil {
+			if !reflect.DeepEqual(ti, ti.next.prev) {
+				return 0, false
+			}
+		}
+		ti = ti.next
 		counter++
 	}
-	if counter != 1 {
-		t.Fatalf("incorrect linked list length! expected %d but got %d", 1, counter)
-	}
+	return counter, true
 }
