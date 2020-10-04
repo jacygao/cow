@@ -131,8 +131,8 @@ func (c *Client) onTick() {
 		atomic.AddUint64(&c.ticks, 1)
 		lock := c.leaseLock(c.ticks)
 		lock.Lock()
-		defer lock.Unlock()
 		if c.state != running {
+			lock.Unlock()
 			break
 		}
 		bucket := &c.buckets[c.ticks&c.bMask]
@@ -146,6 +146,7 @@ func (c *Client) onTick() {
 			}
 			t = next
 		}
+		lock.Unlock()
 		if tl.head == nil {
 			continue
 		}
