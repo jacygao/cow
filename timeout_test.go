@@ -22,6 +22,10 @@ func TestPrepend(t *testing.T) {
 	tl.prepend(t2)
 	tl.prepend(t3)
 
+	if !reflect.DeepEqual(tl.head, t3) {
+		t.Fatalf("expected linked list head to be %+v but got %+v", t3, tl.head)
+	}
+
 	cout, ok := isLinkedListValid(tl)
 	if !ok {
 		t.Fatal("got invalid linked list")
@@ -47,7 +51,6 @@ func TestRemove(t *testing.T) {
 	tl.prepend(t1)
 	tl.prepend(t2)
 	tl.prepend(t3)
-
 	t2.remove()
 	cout, ok := isLinkedListValid(tl)
 	if !ok {

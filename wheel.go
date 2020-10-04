@@ -94,17 +94,8 @@ func (c *Client) Stop() {
 	<-c.done
 }
 
-func (c *Client) leaseTimeout(deadline uint64) *timeout {
-	lock := c.locker[deadline&c.bMask]
-	lock.Lock()
-	bucket := &c.buckets[deadline&c.bMask]
-	if bucket.head == nil {
-		return &timeout{
-			deadline: deadline,
-		}
-	}
-	timeout := bucket.head
-	return timeout
+func (c *Client) leaseLock(deadline uint64) *lock {
+	return &c.locker[deadline&c.bMask]
 }
 
 func (c *Client) Schedule(d time.Duration, data []byte, cb func([]byte)) bool {
@@ -114,21 +105,23 @@ func (c *Client) Schedule(d time.Duration, data []byte, cb func([]byte)) bool {
 
 	dTicks := (d + c.tickInterval - 1) / c.tickInterval
 	deadline := atomic.LoadUint64(&c.ticks) + uint64(dTicks)
-	t := c.leaseTimeout(deadline)
+	lock := c.leaseLock(deadline)
+	lock.Lock()
+	defer lock.Unlock()
+	t := &timeout{}
+	bucket := &c.buckets[deadline&c.bMask]
+	t.deadline = deadline
 	t.receiver = &OnTimeoutImpl{
 		callback: cb,
 	}
 	t.userData = data
-	c.Lock()
-	defer c.Unlock()
-	log.Printf("t: %+v", c.buckets[deadline&c.bMask])
 	// if the last tick has already passed the deadline, execute callback now
-	if c.buckets[deadline&c.bMask].lastTick >= deadline {
+	if bucket.lastTick >= deadline {
 		t.receiver.Callback(data)
 		return true
 	}
 	// otherwise schedule timeout
-	c.buckets[deadline&c.bMask].prepend(t)
+	bucket.prepend(t)
 	return true
 }
 
@@ -137,9 +130,10 @@ func (c *Client) onTick() {
 	ticker := time.NewTicker(c.tickInterval)
 	for range ticker.C {
 		atomic.AddUint64(&c.ticks, 1)
-		c.Lock()
+		lock := &c.locker[c.ticks&c.bMask]
+		lock.Lock()
 		if c.state != running {
-			c.Unlock()
+			lock.Unlock()
 			break
 		}
 
@@ -154,14 +148,12 @@ func (c *Client) onTick() {
 			t = t.next
 			log.Printf("next %p | t: %+v", t, t)
 		}
-		c.Unlock()
+		lock.Unlock()
 		if tl.head == nil {
 			continue
 		}
 		c.tChan <- tl
-		c.Lock()
 		tl.head = nil
-		c.Unlock()
 	}
 	ticker.Stop()
 }
