@@ -1,7 +1,6 @@
 package tw
 
 import (
-	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -130,25 +129,23 @@ func (c *Client) onTick() {
 	ticker := time.NewTicker(c.tickInterval)
 	for range ticker.C {
 		atomic.AddUint64(&c.ticks, 1)
-		lock := &c.locker[c.ticks&c.bMask]
+		lock := c.leaseLock(c.ticks)
 		lock.Lock()
+		defer lock.Unlock()
 		if c.state != running {
-			lock.Unlock()
 			break
 		}
-
-		c.buckets[c.ticks&c.bMask].lastTick = c.ticks
-		t := c.buckets[c.ticks&c.bMask].head
+		bucket := &c.buckets[c.ticks&c.bMask]
+		bucket.lastTick = c.ticks
+		t := bucket.head
 		for t != nil {
-			log.Printf("t: %p | %+v", t, t)
+			next := t.next
 			if t.deadline <= c.ticks {
-				// t.remove()
+				t.remove()
 				tl.prepend(t)
 			}
-			t = t.next
-			log.Printf("next %p | t: %+v", t, t)
+			t = next
 		}
-		lock.Unlock()
 		if tl.head == nil {
 			continue
 		}

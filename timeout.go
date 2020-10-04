@@ -41,10 +41,13 @@ type timeoutList struct {
 
 func (tl *timeoutList) prepend(t *timeout) {
 	if tl.head == nil {
+		t.prev = nil
+		t.next = nil
 		tl.head = t
 	} else {
-		tl.head.prev = t
+		t.prev = nil
 		t.next = tl.head
+		tl.head.prev = t
 		tl.head = t
 	}
 }
