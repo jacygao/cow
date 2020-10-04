@@ -1,9 +1,5 @@
 package tw
 
-const (
-	cacheline = 64
-)
-
 type OnTimeout interface {
 	Callback(userData []byte)
 }

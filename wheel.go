@@ -10,6 +10,7 @@ import (
 const (
 	defaultTickInterval = time.Millisecond
 	defaultBucketSize   = 2048
+	cacheline           = 64
 
 	// states of a Client
 	stopped = iota
