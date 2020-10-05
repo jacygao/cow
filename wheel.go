@@ -37,7 +37,6 @@ type Client struct {
 	state        int
 	locker       []lock
 	buckets      []timeoutList
-	freeBucket   []timeoutList
 	bMask        uint64
 	tChan        chan timeoutList
 	done         chan struct{}
@@ -60,7 +59,6 @@ func New(options ...Option) *Client {
 		state:        stopped,
 		locker:       make([]lock, defaultBucketSize),
 		buckets:      make([]timeoutList, defaultBucketSize),
-		freeBucket:   make([]timeoutList, defaultBucketSize),
 		bMask:        defaultBucketSize - 1,
 	}
 }
