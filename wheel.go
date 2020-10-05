@@ -1,4 +1,4 @@
-package tw
+package cow
 
 import (
 	"sync"
@@ -30,6 +30,7 @@ func DefaultConfig() Config {
 
 type Option func(*Config)
 
+// Client defines a Wheel.
 type Client struct {
 	sync.Mutex
 	ticks        uint64
@@ -48,6 +49,7 @@ type lock struct {
 	_ [cacheline - unsafe.Sizeof(sync.Mutex{})]byte
 }
 
+// New returns a new Client instance.
 func New(options ...Option) *Client {
 	conf := DefaultConfig()
 	for _, f := range options {
@@ -63,7 +65,7 @@ func New(options ...Option) *Client {
 	}
 }
 
-// Start starts the timeout wheel
+// Start starts the call out wheel.
 func (c *Client) Start() {
 	for c.state != stopped {
 		switch c.state {
@@ -82,6 +84,7 @@ func (c *Client) Start() {
 	go c.onExpire()
 }
 
+// Stop gracefully stops the wheel.
 func (c *Client) Stop() {
 	c.Lock()
 	if c.state == running {
@@ -96,6 +99,8 @@ func (c *Client) leaseLock(deadline uint64) *lock {
 	return &c.locker[deadline&c.bMask]
 }
 
+// Schedule schedules a callback in a given time duration.
+// The data is accesible by the callback function.
 func (c *Client) Schedule(d time.Duration, data []byte, cb func([]byte)) bool {
 	if c.state != running {
 		panic("system has stopped")
@@ -123,6 +128,7 @@ func (c *Client) Schedule(d time.Duration, data []byte, cb func([]byte)) bool {
 	return true
 }
 
+// onTick runs on each tick
 func (c *Client) onTick() {
 	tl := timeoutList{}
 	ticker := time.NewTicker(c.tickInterval)
@@ -155,7 +161,7 @@ func (c *Client) onTick() {
 	ticker.Stop()
 }
 
-// onExpire fires timeout callbacks
+// onExpire fires timeout callbacks.
 func (c *Client) onExpire() {
 	for list := range c.tChan {
 		t := list.head

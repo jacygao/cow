@@ -1,3 +1,3 @@
-module github.com/jacygao/tw
+module cow
 
 go 1.12
