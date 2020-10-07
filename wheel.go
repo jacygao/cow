@@ -86,17 +86,31 @@ func (c *Client) Start() {
 
 // Stop gracefully stops the wheel.
 func (c *Client) Stop() {
-	c.Lock()
+	c.lockAll()
+
 	if c.state == running {
 		c.state = stopping
 		close(c.tChan)
 	}
-	c.Unlock()
+
+	c.unlockAll()
 	<-c.done
 }
 
 func (c *Client) leaseLock(deadline uint64) *lock {
 	return &c.locker[deadline&c.bMask]
+}
+
+func (c *Client) lockAll() {
+	for i := range c.locker {
+		c.locker[i].Lock()
+	}
+}
+
+func (c *Client) unlockAll() {
+	for i := len(c.locker) - 1; i >= 0; i-- {
+		c.locker[i].Unlock()
+	}
 }
 
 // Schedule schedules a callback in a given time duration.
@@ -175,8 +189,8 @@ func (c *Client) onExpire() {
 		}
 	}
 
-	c.Lock()
+	c.lockAll()
 	c.state = stopped
-	c.Unlock()
+	c.unlockAll()
 	close(c.done)
 }
