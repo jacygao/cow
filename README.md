@@ -1,4 +1,7 @@
-# cow
+# cow 
+
+[![codecov](https://codecov.io/gh/jacygao/cow/branch/master/graph/badge.svg)](https://codecov.io/gh/jacygao/cow)
+
 Package cow implements a Call Out Wheel which schedules and fires callbacks in the background of your Go programs.
 
 This library was inspired by a Uber Go library which was later made private.
