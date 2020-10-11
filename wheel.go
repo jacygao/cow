@@ -18,17 +18,25 @@ const (
 	running
 )
 
+// Config contains a list of values to initialise a Call Out Wheel.
 type Config struct {
 	tickInterval time.Duration
 }
 
+// DefaultConfig initialises configuration with default value.
 func DefaultConfig() Config {
 	return Config{
 		tickInterval: defaultTickInterval,
 	}
 }
 
+// Option overrides default configuration value with the input value.
 type Option func(*Config)
+
+// WithTickInterval sets the frequency of ticks.
+func WithTickInterval(interval time.Duration) Option {
+	return func(conf *Config) { conf.tickInterval = interval }
+}
 
 // Client defines a Wheel.
 type Client struct {
