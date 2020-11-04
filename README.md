@@ -23,3 +23,10 @@ cli.Schedule(5 * time.Seconds, []byte("your data"), func(data []byte){
 })
 
 ```
+
+## Configuration
+
+```
+// Init call out wheel with custom tick interval
+cli := cow.New(cow.WithTickInterval(time.Second * 10))
+```
