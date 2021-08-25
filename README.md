@@ -1,5 +1,6 @@
 # cow 
 
+![CI](https://github.com/jacygao/cow/actions/workflows/build.yml/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/jacygao/cow/branch/master/graph/badge.svg)](https://codecov.io/gh/jacygao/cow)
 
 Package cow implements a Call Out Wheel which schedules and fires callbacks in the background of your Go programs.
